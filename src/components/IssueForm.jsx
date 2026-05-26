@@ -1,16 +1,30 @@
 import { useState } from 'react'
 
 const SEVERITY_OPTIONS = [
-  { value: 'showstopper', label: 'Show stopper' },
-  { value: 'major',       label: 'Major' },
-  { value: 'minor',       label: 'Low-med' },
+  { value: 'showstopper', label: 'Critical', color: '#ef4444', bg: '#fef2f2' },
+  { value: 'major',       label: 'Major',    color: '#f59e0b', bg: '#fffbeb' },
+  { value: 'minor',       label: 'Low-med',  color: '#22c55e', bg: '#f0fdf4' },
 ]
 
 const EFFORT_OPTIONS = [
-  { value: 'low',    label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high',   label: 'High' },
+  { value: 'high',   label: 'High',   color: '#f87171', bg: '#fef2f2' },
+  { value: 'medium', label: 'Medium', color: '#fbbf24', bg: '#fffbeb' },
+  { value: 'low',    label: 'Low',    color: '#4ade80', bg: '#f0fdf4' },
 ]
+
+const FIELD_LABEL_STYLE = {
+  fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+  textTransform: 'uppercase', color: '#9ca3af',
+  fontFamily: "'Inter', sans-serif", marginBottom: 7, display: 'block',
+}
+
+const PILL_BASE = {
+  flex: 1, padding: '7px 4px', borderRadius: 10,
+  border: '1.5px solid #e5e7eb', background: 'white',
+  fontSize: 11, fontWeight: 500, cursor: 'pointer',
+  transition: 'all 0.15s ease', fontFamily: "'Inter', sans-serif",
+  color: '#6b7280',
+}
 
 export default function IssueForm({ onAdd }) {
   const [description, setDescription] = useState('')
@@ -30,101 +44,100 @@ export default function IssueForm({ onAdd }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Title */}
-      <h2 className="text-3xl font-bold text-black" style={{ fontFamily: 'system-ui, sans-serif' }}>
-        Create UX debt
-      </h2>
+      {/* Title with accent bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottom: '1px solid #f3f4f6' }}>
+        <div style={{ width: 4, height: 22, background: 'linear-gradient(to bottom, #6366f1, #8b5cf6)', borderRadius: 2, flexShrink: 0 }} />
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 17, color: '#111827', margin: 0 }}>
+          Log UX issue
+        </h2>
+      </div>
 
       {/* Description */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-black">Description</label>
+      <div>
+        <label style={FIELD_LABEL_STYLE}>Description</label>
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={5}
-          className={[
-            'w-full rounded-lg px-3 py-2.5 text-sm text-gray-800 resize-none',
-            'focus:outline-none focus:ring-2 focus:ring-gray-400',
-            'transition-all',
-            shake ? 'ring-2 ring-red-400' : '',
-          ].join(' ')}
-          style={{ background: '#f0f0f0', border: 'none' }}
+          placeholder="Describe the UX issue…"
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            borderRadius: 12, padding: '10px 12px',
+            fontSize: 13, color: '#374151', resize: 'none',
+            background: '#f9fafb',
+            border: shake ? '1.5px solid #ef4444' : '1.5px solid #e5e7eb',
+            outline: 'none', fontFamily: "'Inter', sans-serif",
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+            lineHeight: 1.55,
+          }}
+          onFocus={e => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)' }}
+          onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
         />
       </div>
 
-      {/* Severity + Effort */}
-      <div className="grid grid-cols-2 gap-3">
-        <SelectField
-          label="Severity"
-          value={severity}
-          onChange={setSeverity}
-          options={SEVERITY_OPTIONS}
-          showInfo
-        />
-        <SelectField
-          label="Effort"
-          value={effort}
-          onChange={setEffort}
-          options={EFFORT_OPTIONS}
-          showInfo
-        />
+      {/* Severity pills */}
+      <div>
+        <label style={FIELD_LABEL_STYLE}>Severity</label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {SEVERITY_OPTIONS.map(opt => (
+            <button key={opt.value} type="button" onClick={() => setSeverity(opt.value)}
+              style={{
+                ...PILL_BASE,
+                border: `1.5px solid ${severity === opt.value ? opt.color : '#e5e7eb'}`,
+                background: severity === opt.value ? opt.bg : 'white',
+                color: severity === opt.value ? opt.color : '#6b7280',
+                fontWeight: severity === opt.value ? 700 : 500,
+              }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Effort pills */}
+      <div>
+        <label style={FIELD_LABEL_STYLE}>Dev effort</label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {EFFORT_OPTIONS.map(opt => (
+            <button key={opt.value} type="button" onClick={() => setEffort(opt.value)}
+              style={{
+                ...PILL_BASE,
+                border: `1.5px solid ${effort === opt.value ? opt.color : '#e5e7eb'}`,
+                background: effort === opt.value ? opt.bg : 'white',
+                color: effort === opt.value ? opt.color : '#6b7280',
+                fontWeight: effort === opt.value ? 700 : 500,
+              }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Submit */}
       <button
         type="submit"
-        className="w-full text-white text-base font-semibold py-3 flex items-center justify-center gap-2 active:scale-95 transition-transform"
         style={{
-          background: '#000',
-          borderRadius: 9999,
+          width: '100%', padding: '12px 0',
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          color: 'white', borderRadius: 12, border: 'none',
+          fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          boxShadow: '0 4px 14px rgba(99,102,241,0.40)',
+          transition: 'transform 0.1s, box-shadow 0.1s',
         }}
+        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.3)' }}
+        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.40)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.40)' }}
       >
-        <CirclePlus />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="white" strokeWidth="1.5"/>
+          <path d="M8 5v6M5 8h6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
         Add to tree
       </button>
+
     </form>
-  )
-}
-
-function SelectField({ label, value, onChange, options, showInfo }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1">
-        <label className="text-sm font-semibold text-black">{label}</label>
-        {showInfo && <InfoIcon />}
-      </div>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full rounded-lg px-3 py-2 text-sm text-gray-800 bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-      >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
-function InfoIcon() {
-  return (
-    <span
-      className="inline-flex items-center justify-center text-gray-400 border border-gray-400 rounded-full"
-      style={{ width: 14, height: 14, fontSize: 9, lineHeight: 1, fontWeight: 700 }}
-    >
-      i
-    </span>
-  )
-}
-
-function CirclePlus() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="9" stroke="white" strokeWidth="1.5" />
-      <path d="M10 6v8M6 10h8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
   )
 }

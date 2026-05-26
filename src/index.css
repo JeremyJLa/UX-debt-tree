@@ -1,10 +1,11 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital@1&family=Griffy&display=swap');
+@import "tailwindcss";
 
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: #faf9f6;
+    background: #8994be;
+    min-height: 100vh;
     margin: 0;
   }
 }
