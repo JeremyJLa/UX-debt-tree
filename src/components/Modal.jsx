@@ -1,9 +1,9 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 const SEVERITY_META = {
-  showstopper: { label: 'Show stopper', color: '#ef4444', bg: '#fef2f2' },
-  major:       { label: 'Major issue',  color: '#f59e0b', bg: '#fffbeb' },
-  minor:       { label: 'Low-med issue', color: '#f5c542', bg: '#fefce8' },
+  showstopper: { label: 'Critical',    color: '#DA003E', bg: '#fff0f3' },
+  major:       { label: 'Major',       color: '#FF6C22', bg: '#fff4ee' },
+  minor:       { label: 'Low-medium',  color: '#c49200', bg: '#fef9e7' },
 }
 
 const EFFORT_META = {
@@ -17,8 +17,7 @@ export default function Modal({ issue, onClose, onComplete }) {
   const eff = EFFORT_META[issue.effort]
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <motion.div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -75,7 +74,7 @@ export default function Modal({ issue, onClose, onComplete }) {
           <button
             onClick={() => onComplete(issue.id)}
             style={{
-              width: '100%', padding: '12px 0', borderRadius: 12, border: 'none',
+              width: '100%', padding: '12px 0', borderRadius: 999, border: 'none',
               background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
               color: 'white', fontFamily: "'Inter', sans-serif",
               fontWeight: 600, fontSize: 14, cursor: 'pointer',
@@ -91,6 +90,5 @@ export default function Modal({ issue, onClose, onComplete }) {
           </button>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   )
 }

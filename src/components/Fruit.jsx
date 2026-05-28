@@ -1,17 +1,18 @@
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
+import { useEffect } from 'react'
+import { motion, usePresence, useMotionValue, useSpring } from 'framer-motion'
 
 const SEVERITY_COLORS = {
-  showstopper: '#ff2d55',
-  major:       '#f5a623',
-  minor:       '#f5c542',   // was '#7ed321'
+  showstopper: '#DA003E',
+  major:       '#FF6C22',
+  minor:       '#F6BC0E',
 }
 
 export default function Fruit({ issue, position, onClick }) {
+  const [isPresent, safeToRemove] = usePresence()
   const fill = SEVERITY_COLORS[issue.severity]
   // Fruit radius varies by effort band: low (easy) = larger, high (hard) = smaller
   const EFFORT_RADIUS = { low: 26, medium: 20, high: 15 }
   const r = EFFORT_RADIUS[issue.effort] ?? 20
-  const exitRotate = position.x > 561 ? 44 : -44
 
   // Deterministic per-fruit offsets so every fruit is out of phase
   const h = issue.id.split('').reduce(
@@ -57,87 +58,132 @@ export default function Fruit({ issue, position, onClick }) {
   const pivotX = position.x + 2
   const pivotY = position.y - r - stemLength   // = position.y - 36
 
+  // ── Fall physics (all deterministic from seeded hash) ──────────────────────
+  // Which side of the tree: right fruits spin CW (+), left fruits spin CCW (-)
+  const spinDir    = position.x > 561 ? 1 : -1
+  // 35–65° lean — clearly visible, modern restraint (not a full tumble)
+  const spinDeg    = spinDir * (35 + n1 * 30)
+  // Small snap on detach
+  const snapWobble = -spinDir * (3 + n3 * 4)
+  // Gentle lateral drift
+  const driftX     = spinDir * (10 + n2 * 18)
+
+  // When AnimatePresence wants to remove this component, drive the fall
+  // animation manually via animate state, then tell AP it's safe to unmount.
+  const animateState = isPresent ? 'visible' : 'gone'
+
+  // Fallback: guarantee safeToRemove fires even if onAnimationComplete
+  // doesn't (e.g. if Framer Motion swallows the callback in SVG context).
+  useEffect(() => {
+    if (!isPresent) {
+      const t = setTimeout(() => safeToRemove?.(), 13500)
+      return () => clearTimeout(t)
+    }
+  }, [isPresent, safeToRemove])
+
   return (
-    <AnimatePresence>
-      {!issue.completed && (
+    <motion.g
+      initial="hidden"
+      animate={animateState}
+      variants={{
+        hidden: { y: -70, opacity: 0 },
+        visible: {
+          y: 0, opacity: 1,
+          transition: {
+            y:       { type: 'spring', stiffness: 380, damping: 13, mass: 0.65 },
+            opacity: { duration: 0.18 },
+          },
+        },
+        gone: {
+          // 1. Tiny upward float on detach, then gravity
+          y:       [0, -10, 1100],
+          // 2. Gentle lateral drift
+          x:       driftX,
+          // 3. Visible lean/tilt as it falls
+          rotate:  [0, snapWobble, spinDeg],
+          // 4. Pop on detach (grows 15%), then recedes to 60% as it falls away
+          scale:   [1, 1.15, 0.60],
+          // 5. Fully opaque, then long silky fade
+          opacity: [1, 1, 1, 0],
+          transition: {
+            duration: 13,
+            y: {
+              times: [0, 0.018, 1],
+              ease: ['easeOut', [0.6, 0, 0.9, 0.7]],
+            },
+            x: {
+              ease: [0.4, 0, 0.3, 1],
+            },
+            rotate: {
+              times: [0, 0.02, 1],
+              ease:  ['circOut', [0.5, 0, 0.8, 1]],
+            },
+            scale: {
+              // Quick pop at detach, then slow shrink for the rest of the fall
+              times: [0, 0.03, 1],
+              ease:  ['backOut', [0.4, 0, 0.6, 1]],
+            },
+            opacity: {
+              times: [0, 0.80, 0.98, 1],
+            },
+          },
+        },
+      }}
+      onAnimationComplete={() => {
+        // Once any animation completes while exiting, we're done
+        if (!isPresent) safeToRemove?.()
+      }}
+      style={{ transformBox: 'fill-box', transformOrigin: '50% 50%' }}
+      onClick={() => onClick(issue)}
+      className="cursor-pointer"
+    >
+
+      {/* ── Sway: slow pendulum rotation around branch attachment ── */}
+      <motion.g
+        animate={isPresent ? { rotate: [0, 2.5, 0, -2.5, 0] } : {}}
+        transition={{
+          duration:    swayDuration,
+          repeat:      Infinity,
+          ease:        'easeInOut',
+          delay:       swayDelay,
+        }}
+        style={{ transformOrigin: `${pivotX}px ${pivotY}px` }}
+      >
+
+        {/* ── Bob: gentle independent vertical float ── */}
         <motion.g
-          key={issue.id}
-          initial="hidden"
-          animate="visible"
-          exit="gone"
-          variants={{
-            hidden: { y: -70, opacity: 0 },
-            visible: {
-              y: 0, opacity: 1,
-              transition: {
-                y:       { type: 'spring', stiffness: 380, damping: 13, mass: 0.65 },
-                opacity: { duration: 0.18 },
-              },
-            },
-            gone: {
-              y: 1900,
-              rotate: exitRotate,
-              opacity: [1, 1, 0],
-              transition: {
-                y:       { duration: 1.45, ease: [0.4, 0, 1, 1] },
-                rotate:  { duration: 1.45, ease: [0.4, 0, 1, 1] },
-                opacity: { duration: 1.45, times: [0, 0.88, 1] },
-              },
-            },
+          animate={isPresent ? { y: [0, 2, 0, -1.5, 0] } : {}}
+          transition={{
+            duration: bobDuration,
+            repeat:   Infinity,
+            ease:     'easeInOut',
+            delay:    bobDelay,
           }}
-          style={{ transformOrigin: `${position.x}px ${position.y}px` }}
-          onClick={() => onClick(issue)}
-          className="cursor-pointer"
         >
 
-          {/* ── Sway: slow pendulum rotation around branch attachment ── */}
+          {/* ── Hover pull: drifts toward cursor ── */}
           <motion.g
-            animate={{ rotate: [0, 2.5, 0, -2.5, 0] }}
-            transition={{
-              duration:    swayDuration,
-              repeat:      Infinity,
-              ease:        'easeInOut',
-              delay:       swayDelay,
-            }}
-            style={{ transformOrigin: `${pivotX}px ${pivotY}px` }}
+            style={{ x: pullX, y: pullY }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => { rawX.set(0); rawY.set(0) }}
           >
+            {/* Larger transparent hit area for smooth hover entry */}
+            <circle cx={position.x} cy={position.y} r={r + 20} fill="transparent" />
 
-            {/* ── Bob: gentle independent vertical float ── */}
-            <motion.g
-              animate={{ y: [0, 2, 0, -1.5, 0] }}
-              transition={{
-                duration: bobDuration,
-                repeat:   Infinity,
-                ease:     'easeInOut',
-                delay:    bobDelay,
-              }}
-            >
-
-              {/* ── Hover pull: drifts toward cursor ── */}
-              <motion.g
-                style={{ x: pullX, y: pullY }}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={() => { rawX.set(0); rawY.set(0) }}
-              >
-                {/* Larger transparent hit area for smooth hover entry */}
-                <circle cx={position.x} cy={position.y} r={r + 20} fill="transparent" />
-
-                <line
-                  x1={position.x}
-                  y1={position.y - r}
-                  x2={position.x + 2}
-                  y2={position.y - r - stemLength}
-                  stroke="#1a1a18"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-                <circle cx={position.x} cy={position.y} r={r} fill={fill} />
-              </motion.g>
-
-            </motion.g>
+            <line
+              x1={position.x}
+              y1={position.y - r}
+              x2={position.x + 2}
+              y2={position.y - r - stemLength}
+              stroke="#1a1a18"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            />
+            <circle cx={position.x} cy={position.y} r={r} fill={fill} stroke="white" strokeWidth={1} />
           </motion.g>
+
         </motion.g>
-      )}
-    </AnimatePresence>
+      </motion.g>
+    </motion.g>
   )
 }

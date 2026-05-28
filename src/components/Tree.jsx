@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import Fruit from './Fruit'
 import tree2Png from '../assets/tree2.png'
 
@@ -37,7 +37,7 @@ const FRUIT_SLOTS = {
   ],
 }
 
-const MIN_DIST = 46
+const MIN_DIST = 62
 
 function seeded(id, offset = 0) {
   let h = offset * 2654435761
@@ -58,8 +58,8 @@ function computePositions(issues) {
     let bestFallbackDist = -1
     for (const idx of indices) {
       const slot = slots[idx]
-      const jx = (seeded(issue.id, idx * 3 + 1) - 0.5) * 10
-      const jy = (seeded(issue.id, idx * 3 + 2) - 0.5) * 6
+      const jx = (seeded(issue.id, idx * 3 + 1) - 0.5) * 4
+      const jy = (seeded(issue.id, idx * 3 + 2) - 0.5) * 4
       const candidate = { x: Math.round(slot.x + jx), y: Math.round(slot.y + jy) }
       const minDist = placed.length === 0
         ? Infinity
@@ -85,52 +85,63 @@ function BandLabel({ x, y, line1, line2 }) {
   )
 }
 
-export default function Tree({ issues, onFruitClick, onAddClick }) {
+export default function Tree({ issues, onFruitClick, onAddClick, theme }) {
   const positions = useMemo(() => computePositions(issues), [issues])
   const hasActive = issues.some(i => !i.completed)
 
   return (
-    <div className="w-full h-full min-h-[500px]">
+    <div style={{ width: '100%', minHeight: '500px' }}>
       <svg
         viewBox="0 0 1122 889"
         preserveAspectRatio="xMidYMax meet"
-        className="w-full h-full"
+        style={{ display: 'block', width: '100%', height: 'auto' }}
         overflow="visible"
       >
         <defs>
-          {/* Active: periwinkle-blue fill + slightly darker outline */}
-          <filter id="tree-active" colorInterpolationFilters="sRGB" x="-1%" y="-1%" width="102%" height="102%">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="dilated"/>
-            <feFlood floodColor="#9aa4bc" result="outlineColor"/>
-            <feComposite in="outlineColor" in2="dilated" operator="in" result="outline"/>
+          {/* Gradient that mirrors the page background — spans the full translated tree area */}
+          <linearGradient
+            id="tree-fill-grad"
+            gradientUnits="userSpaceOnUse"
+            x1="-111" y1="0"
+            x2="1011" y2="889"
+          >
+            {theme.gradientStops.map(s => (
+              <stop key={s.offset} offset={s.offset} stopColor={s.color} />
+            ))}
+          </linearGradient>
+
+          {/* Converts any opaque pixel to white (preserving alpha) — used inside masks */}
+          <filter id="alpha-to-white" colorInterpolationFilters="sRGB">
             <feColorMatrix type="matrix"
-              values="0 0 0 0 0.74  0 0 0 0 0.77  0 0 0 0 0.86  0 0 0 1 0"
-              in="SourceGraphic" result="blueFill"/>
-            <feMerge>
-              <feMergeNode in="outline"/>
-              <feMergeNode in="blueFill"/>
-            </feMerge>
+              values="0 0 0 0 1
+                      0 0 0 0 1
+                      0 0 0 0 1
+                      0 0 0 1 0" />
           </filter>
 
-          {/* Empty: muted, slightly darker periwinkle */}
-          <filter id="tree-empty" colorInterpolationFilters="sRGB" x="-1%" y="-1%" width="102%" height="102%">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="dilated"/>
-            <feFlood floodColor="#7880a0" result="outlineColor"/>
-            <feComposite in="outlineColor" in2="dilated" operator="in" result="outline"/>
-            <feColorMatrix type="matrix"
-              values="0 0 0 0 0.64  0 0 0 0 0.68  0 0 0 0 0.78  0 0 0 1 0"
-              in="SourceGraphic" result="mutedFill"/>
-            <feMerge>
-              <feMergeNode in="outline"/>
-              <feMergeNode in="mutedFill"/>
-            </feMerge>
-          </filter>
+          {/* Main tree mask (x=0) */}
+          <mask id="tree-mask" maskContentUnits="userSpaceOnUse">
+            <image href={tree2Png} x="0" y="0" width="1122" height="889"
+              filter="url(#alpha-to-white)" />
+          </mask>
+
+          {/* Ground-extension mask (x=-111) */}
+          <mask id="tree-mask-ext" maskContentUnits="userSpaceOnUse">
+            <image href={tree2Png} x="-111" y="0" width="1122" height="889"
+              filter="url(#alpha-to-white)" />
+          </mask>
+
+          {/* Clips the ground-extension to the left gap only.
+              2px of extra width buries the antialiased clip edge under the main tree. */}
+          <clipPath id="ground-clip">
+            <rect x="-111" y="640" width="113" height="300" />
+          </clipPath>
         </defs>
 
-        {/* Solid white base — ensures ground area is white too */}
+        {/* Solid white base — ensures band area is white */}
         <rect x="0" y="0" width="1122" height="889" fill="white" />
 
-        {/* Effort bands — near-white tints */}
+        {/* Effort bands — always fully opaque so labels stay crisp */}
         <rect x="0" y="0"            width="1122" height={BAND.highEnd}                fill="#fff3f2" />
         <rect x="0" y={BAND.highEnd} width="1122" height={BAND.medEnd - BAND.highEnd}  fill="#fefef0" />
         <rect x="0" y={BAND.medEnd}  width="1122" height={BAND.lowEnd - BAND.medEnd}   fill="#f2fef5" />
@@ -142,57 +153,45 @@ export default function Tree({ issues, onFruitClick, onAddClick }) {
         <BandLabel x={28} y={BAND.highEnd + 38}     line1="Middle hanging fruit" line2="Medium dev effort" />
         <BandLabel x={28} y={BAND.medEnd  + 38}     line1="Bottom hanging fruit" line2="Low dev effort"    />
 
-        {/* Base white tree — always visible */}
-        <image href={tree2Png} x="0" y="0" width="1122" height="889" filter="url(#tree-active)" />
+        {/* Tree + fruits shifted 111px right */}
+        <g transform="translate(111, 0)">
 
-        {/* Empty overlay — fades out when first issue added, fades back when all cleared */}
-        <motion.g
-          animate={{ opacity: hasActive ? 0 : 1 }}
-          transition={{ duration: 1.4, ease: 'easeInOut' }}
-        >
-          <image href={tree2Png} x="0" y="0" width="1122" height="889" filter="url(#tree-empty)" />
-        </motion.g>
+          {/* Ground extension — gradient fill masked to tree shape, clipped to left gap only */}
+          <rect x="-111" y="0" width="1122" height="889"
+            fill="url(#tree-fill-grad)"
+            mask="url(#tree-mask-ext)"
+            clipPath="url(#ground-clip)" />
 
-        {/* Empty-state copy — visible only when no active issues */}
-        <motion.g
-          animate={{ opacity: hasActive ? 0 : 1 }}
-          transition={{ duration: 1.0, ease: 'easeInOut' }}
-          style={{ pointerEvents: hasActive ? 'none' : 'auto' }}
-        >
-          <text x="561" y="752" textAnchor="middle" dominantBaseline="central"
-            fill="#9ca3af" fontSize="26" fontFamily="Inter, sans-serif" fontWeight="400">
-            You are free of UX debt
-          </text>
-          <g onClick={onAddClick} style={{ cursor: 'pointer' }}>
-            <rect x="436" y="784" width="250" height="52" rx="26" fill="#6366f1" />
-            <text x="561" y="810" textAnchor="middle" dominantBaseline="central"
-              fill="white" fontSize="20" fontFamily="Inter, sans-serif" fontWeight="600">
-              + Add UX issue
-            </text>
+          {/* Main tree — gradient fill masked to tree silhouette */}
+          <rect x="0" y="0" width="1122" height="889"
+            fill="url(#tree-fill-grad)"
+            mask="url(#tree-mask)" />
+
+          {/* Legend */}
+          <g fontFamily="Inter, sans-serif" fontSize="13" fill="#6b7280">
+            <circle cx="744" cy="592" r="8" fill="#DA003E" />
+            <text x="758"  y="592" dominantBaseline="central">Critical</text>
+
+            <circle cx="834" cy="592" r="8" fill="#FF6C22" />
+            <text x="848"  y="592" dominantBaseline="central">Major</text>
+
+            <circle cx="902" cy="592" r="8" fill="#F6BC0E" />
+            <text x="916"  y="592" dominantBaseline="central">Low-medium</text>
           </g>
-        </motion.g>
 
-        {/* Legend */}
-        <g fontFamily="Inter, sans-serif" fontSize="18" fill="#6b7280">
-          <circle cx="620"  cy="592" r="10" fill="#ff2d55" />
-          <text x="638"  y="592" dominantBaseline="central">Show stopper</text>
+          {/* Fruit */}
+          <AnimatePresence>
+            {issues.map(issue => (
+              <Fruit
+                key={issue.id}
+                issue={issue}
+                position={positions[issue.id] ?? { x: 562, y: 300 }}
+                onClick={onFruitClick}
+              />
+            ))}
+          </AnimatePresence>
 
-          <circle cx="798"  cy="592" r="10" fill="#f5a623" />
-          <text x="816"  y="592" dominantBaseline="central">Major issue</text>
-
-          <circle cx="962" cy="592" r="10" fill="#f5c542" />
-          <text x="980" y="592" dominantBaseline="central">Low-med issue</text>
         </g>
-
-        {/* Fruit */}
-        {issues.map(issue => (
-          <Fruit
-            key={issue.id}
-            issue={issue}
-            position={positions[issue.id] ?? { x: 562, y: 300 }}
-            onClick={onFruitClick}
-          />
-        ))}
       </svg>
     </div>
   )

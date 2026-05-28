@@ -3,7 +3,7 @@ import { useState } from 'react'
 const SEVERITY_OPTIONS = [
   { value: 'showstopper', label: 'Critical', color: '#ef4444', bg: '#fef2f2' },
   { value: 'major',       label: 'Major',    color: '#f59e0b', bg: '#fffbeb' },
-  { value: 'minor',       label: 'Low-med',  color: '#22c55e', bg: '#f0fdf4' },
+  { value: 'minor',       label: 'Low-med',    color: '#ca8a04', bg: '#fefce8' },
 ]
 
 const EFFORT_OPTIONS = [
@@ -19,14 +19,14 @@ const FIELD_LABEL_STYLE = {
 }
 
 const PILL_BASE = {
-  flex: 1, padding: '7px 4px', borderRadius: 10,
+  flex: 1, padding: '7px 4px', borderRadius: 999,
   border: '1.5px solid #e5e7eb', background: 'white',
   fontSize: 11, fontWeight: 500, cursor: 'pointer',
   transition: 'all 0.15s ease', fontFamily: "'Inter', sans-serif",
   color: '#6b7280',
 }
 
-export default function IssueForm({ onAdd }) {
+export default function IssueForm({ onAdd, theme }) {
   const [description, setDescription] = useState('')
   const [severity, setSeverity] = useState('major')
   const [effort, setEffort] = useState('low')
@@ -48,7 +48,7 @@ export default function IssueForm({ onAdd }) {
 
       {/* Title with accent bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottom: '1px solid #f3f4f6' }}>
-        <div style={{ width: 4, height: 22, background: 'linear-gradient(to bottom, #6366f1, #8b5cf6)', borderRadius: 2, flexShrink: 0 }} />
+        <div style={{ width: 4, height: 22, background: theme?.bg ?? '#6366f1', borderRadius: 2, flexShrink: 0, transition: 'background 0.5s' }} />
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 17, color: '#111827', margin: 0 }}>
           Log UX issue
         </h2>
@@ -72,7 +72,7 @@ export default function IssueForm({ onAdd }) {
             transition: 'border-color 0.15s, box-shadow 0.15s',
             lineHeight: 1.55,
           }}
-          onFocus={e => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)' }}
+          onFocus={e => { e.target.style.borderColor = theme?.bg ?? '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.08)' }}
           onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
         />
       </div>
@@ -120,16 +120,16 @@ export default function IssueForm({ onAdd }) {
         type="submit"
         style={{
           width: '100%', padding: '12px 0',
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-          color: 'white', borderRadius: 12, border: 'none',
+          background: theme?.button ?? theme?.bg ?? '#6366f1',
+          color: 'white', borderRadius: 999, border: 'none',
           fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          boxShadow: '0 4px 14px rgba(99,102,241,0.40)',
-          transition: 'transform 0.1s, box-shadow 0.1s',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+          transition: 'transform 0.1s, box-shadow 0.1s, background 0.5s',
         }}
-        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.3)' }}
-        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.40)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.40)' }}
+        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.18)' }}
+        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.22)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.22)' }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="white" strokeWidth="1.5"/>
