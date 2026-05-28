@@ -23,10 +23,10 @@ export default function WelcomeModal({ onStart }) {
       }}
     >
       <motion.div
-        initial={{ y: 28, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         exit={{ y: -16, opacity: 0 }}
-        transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ delay: 0.08, duration: 0.35, ease: 'easeOut' }}
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           gap: 28, width: '100%', maxWidth: 520, textAlign: 'center',
@@ -50,7 +50,7 @@ export default function WelcomeModal({ onStart }) {
               fontSize: 'clamp(32px, 5vw, 52px)',
               color: '#4ade80', margin: 0, letterSpacing: '-1px', lineHeight: 1.15,
             }}>
-              visualisation tree
+              prioritisation tree
             </h2>
           </div>
 

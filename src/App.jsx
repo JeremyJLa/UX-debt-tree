@@ -5,8 +5,77 @@ import Tree from './components/Tree'
 import Modal from './components/Modal'
 import WelcomeModal from './components/WelcomeModal'
 import Celebration from './components/Celebration'
-import PoliciesPage from './components/PoliciesPage'
 import { THEMES, DEFAULT_THEME } from './themes'
+
+function ToolHint({ onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 8000)
+    return () => clearTimeout(t)
+  }, [onDismiss])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8, scale: 0.92 }}
+      animate={{ opacity: 1, x: 0,  scale: 1    }}
+      exit={{    opacity: 0, x: -6, scale: 0.94, transition: { duration: 0.25, ease: 'easeIn' } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onDismiss}
+      style={{
+        position: 'fixed', top: 88, left: 312, zIndex: 60,
+        cursor: 'pointer', userSelect: 'none',
+      }}
+    >
+      {/* Arrow pointing left toward the sidebar form */}
+      <div style={{
+        position: 'absolute', left: -9, top: 84,
+        borderTop: '9px solid transparent',
+        borderBottom: '9px solid transparent',
+        borderRight: '9px solid #1a2038',
+      }} />
+
+      <div style={{
+        background: '#1a2038',
+        borderRadius: 18,
+        padding: '28px 28px 28px 24px',
+        display: 'flex', alignItems: 'flex-start', gap: 18,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
+        width: 420,
+      }}>
+        {/* Coloured dots — represent severity-coded issues */}
+        <svg width="30" height="30" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+          <circle cx="3" cy="4"  r="2" fill="#DA003E" />
+          <rect   x="7" y="3"   width="9" height="2" rx="1" fill="rgba(255,255,255,0.45)" />
+          <circle cx="3" cy="9"  r="2" fill="#FF6C22" />
+          <rect   x="7" y="8"   width="9" height="2" rx="1" fill="rgba(255,255,255,0.45)" />
+          <circle cx="3" cy="14" r="2" fill="#F6BC0E" />
+          <rect   x="7" y="13"  width="9" height="2" rx="1" fill="rgba(255,255,255,0.45)" />
+        </svg>
+
+        <div style={{ flex: 1 }}>
+          <p style={{
+            fontFamily: "'Inter', sans-serif", fontWeight: 700,
+            fontSize: 15, color: 'white', margin: '0 0 10px',
+            letterSpacing: '0.01em',
+          }}>
+            Log your UX &amp; UI issues
+          </p>
+          <p style={{
+            fontFamily: "'Inter', sans-serif", fontWeight: 400,
+            fontSize: 13, color: 'rgba(255,255,255,0.60)', margin: 0,
+            lineHeight: 1.6,
+          }}>
+            Enter each issue, decide its severity and dev effort — it will be visually displayed as fruit on the tree, ordered by effort band.
+          </p>
+        </div>
+
+        <span style={{
+          color: 'rgba(255,255,255,0.35)', fontSize: 20, lineHeight: 1,
+          marginLeft: 4, flexShrink: 0,
+        }}>×</span>
+      </div>
+    </motion.div>
+  )
+}
 
 function ThemeHint({ onDismiss }) {
   useEffect(() => {
@@ -26,51 +95,51 @@ function ThemeHint({ onDismiss }) {
         cursor: 'pointer', userSelect: 'none',
       }}
     >
-      {/* Arrow pointing up — centred over the swatches (~84px from right edge) */}
+      {/* Arrow pointing up — centred over the swatches */}
       <div style={{
-        position: 'absolute', top: -7, right: 64,
-        borderLeft: '7px solid transparent',
-        borderRight: '7px solid transparent',
-        borderBottom: '7px solid #1a2038',
+        position: 'absolute', top: -9, right: 80,
+        borderLeft: '9px solid transparent',
+        borderRight: '9px solid transparent',
+        borderBottom: '9px solid #1a2038',
       }} />
 
       <div style={{
         background: '#1a2038',
-        borderRadius: 12,
-        padding: '11px 14px 11px 12px',
-        display: 'flex', alignItems: 'flex-start', gap: 9,
-        boxShadow: '0 10px 36px rgba(0,0,0,0.30)',
-        maxWidth: 220,
+        borderRadius: 18,
+        padding: '28px 28px 28px 24px',
+        display: 'flex', alignItems: 'flex-start', gap: 18,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
+        width: 420,
       }}>
         {/* Colour palette icon */}
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+        <svg width="30" height="30" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
           <circle cx="6"  cy="6"  r="2.2" fill="#ff2d55" />
           <circle cx="12" cy="6"  r="2.2" fill="#f5a623" />
           <circle cx="6"  cy="12" r="2.2" fill="#4ade80" />
           <circle cx="12" cy="12" r="2.2" fill="#60a5fa" />
         </svg>
 
-        <div>
+        <div style={{ flex: 1 }}>
           <p style={{
             fontFamily: "'Inter', sans-serif", fontWeight: 700,
-            fontSize: 12, color: 'white', margin: '0 0 3px',
-            letterSpacing: '0.02em',
+            fontSize: 15, color: 'white', margin: '0 0 10px',
+            letterSpacing: '0.01em',
           }}>
             Try a colour theme
           </p>
           <p style={{
             fontFamily: "'Inter', sans-serif", fontWeight: 400,
-            fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: 0,
-            lineHeight: 1.45,
+            fontSize: 13, color: 'rgba(255,255,255,0.60)', margin: 0,
+            lineHeight: 1.6,
           }}>
-            Pick one of the four swatches to match your brand.
+            Pick one of the four swatches in the top right to match your brand colours.
           </p>
         </div>
 
         {/* × close */}
         <span style={{
-          color: 'rgba(255,255,255,0.35)', fontSize: 15, lineHeight: 1,
-          marginLeft: 2, flexShrink: 0, marginTop: 1,
+          color: 'rgba(255,255,255,0.35)', fontSize: 20, lineHeight: 1,
+          marginLeft: 4, flexShrink: 0,
         }}>×</span>
       </div>
     </motion.div>
@@ -123,21 +192,22 @@ function StatsBar({ issues }) {
 let nextId = 1
 
 export default function App() {
-  const [page, setPage] = useState('audit')
   const [issues, setIssues] = useState([])
   const [selectedIssue, setSelectedIssue] = useState(null)
   const [started, setStarted] = useState(false)
   const [auditName, setAuditName] = useState('')
   const [theme, setTheme] = useState(DEFAULT_THEME)
+  const [showToolHint,  setShowToolHint]  = useState(false)
   const [showThemeHint, setShowThemeHint] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const prevIssuesLen = useRef(0)
 
-  if (page === 'policies') {
-    return <PoliciesPage onBack={() => setPage('audit')} />
-  }
-
   const dismissThemeHint = useCallback(() => setShowThemeHint(false), [])
+  const dismissToolHint  = useCallback(() => {
+    setShowToolHint(false)
+    // Chain: show colour-theme hint 1.5 s after the tool hint leaves
+    setTimeout(() => setShowThemeHint(true), 1500)
+  }, [])
 
   // When the last issue is cleared: fire celebration directly
   useEffect(() => {
@@ -147,10 +217,10 @@ export default function App() {
     prevIssuesLen.current = issues.length
   }, [issues.length, started])
 
-  // Show hint shortly after the welcome modal closes
+  // Show tool-explanation hint shortly after the tree grows in
   useEffect(() => {
     if (!started) return
-    const t = setTimeout(() => setShowThemeHint(true), 2000)
+    const t = setTimeout(() => setShowToolHint(true), 1800)
     return () => clearTimeout(t)
   }, [started])
 
@@ -218,7 +288,7 @@ export default function App() {
             color: theme.bg,
             transition: 'color 0.5s',
           }}>
-            UX audit visualisation tree
+            UX audit prioritisation tree
           </span>
         </div>
 
@@ -227,19 +297,6 @@ export default function App() {
           {started ? auditName : 'Prioritise quick wins and pick off UX debt, one piece at a time'}
         </p>
 
-        {/* Policies link */}
-        <button
-          onClick={() => setPage('policies')}
-          style={{
-            background: 'none', border: '1px solid rgba(0,0,0,0.18)',
-            borderRadius: 6, padding: '5px 14px',
-            fontSize: 12, fontWeight: 600, letterSpacing: '0.06em',
-            cursor: 'pointer', color: '#333', fontFamily: "'Inter', sans-serif",
-            flexShrink: 0,
-          }}
-        >
-          POLICIES ↗
-        </button>
 
         {/* Theme swatches */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
@@ -303,6 +360,7 @@ export default function App() {
             onFruitClick={setSelectedIssue}
             onAddClick={() => document.querySelector('textarea')?.focus()}
             theme={theme}
+            animateIn={started}
           />
           <StatsBar issues={issues} />
         </main>
@@ -315,6 +373,7 @@ export default function App() {
             issue={selectedIssue}
             onClose={() => setSelectedIssue(null)}
             onComplete={completeIssue}
+            theme={theme}
           />
         )}
       </AnimatePresence>
@@ -337,7 +396,12 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Theme discovery tooltip — auto-appears after welcome modal closes */}
+      {/* Tool explanation tooltip — appears first, after tree grows in */}
+      <AnimatePresence>
+        {showToolHint && <ToolHint onDismiss={dismissToolHint} />}
+      </AnimatePresence>
+
+      {/* Theme discovery tooltip — chained after tool hint dismisses */}
       <AnimatePresence>
         {showThemeHint && <ThemeHint onDismiss={dismissThemeHint} />}
       </AnimatePresence>

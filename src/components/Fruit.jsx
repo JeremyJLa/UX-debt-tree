@@ -61,12 +61,12 @@ export default function Fruit({ issue, position, onClick }) {
   // ── Fall physics (all deterministic from seeded hash) ──────────────────────
   // Which side of the tree: right fruits spin CW (+), left fruits spin CCW (-)
   const spinDir    = position.x > 561 ? 1 : -1
-  // 35–65° lean — clearly visible, modern restraint (not a full tumble)
-  const spinDeg    = spinDir * (35 + n1 * 30)
+  // 180–360° arc tumble as it falls
+  const spinDeg    = spinDir * (180 + n1 * 180)
   // Small snap on detach
-  const snapWobble = -spinDir * (3 + n3 * 4)
-  // Gentle lateral drift
-  const driftX     = spinDir * (10 + n2 * 18)
+  const snapWobble = -spinDir * (4 + n3 * 5)
+  // Parabolic lateral arc — fruit swings out as gravity pulls it down
+  const driftX     = spinDir * (90 + n2 * 100)
 
   // When AnimatePresence wants to remove this component, drive the fall
   // animation manually via animate state, then tell AP it's safe to unmount.
@@ -76,7 +76,7 @@ export default function Fruit({ issue, position, onClick }) {
   // doesn't (e.g. if Framer Motion swallows the callback in SVG context).
   useEffect(() => {
     if (!isPresent) {
-      const t = setTimeout(() => safeToRemove?.(), 13500)
+      const t = setTimeout(() => safeToRemove?.(), 3600)
       return () => clearTimeout(t)
     }
   }, [isPresent, safeToRemove])
@@ -95,36 +95,37 @@ export default function Fruit({ issue, position, onClick }) {
           },
         },
         gone: {
-          // 1. Tiny upward float on detach, then gravity
-          y:       [0, -10, 1100],
-          // 2. Gentle lateral drift
-          x:       driftX,
-          // 3. Visible lean/tilt as it falls
+          // 1. Tiny upward pop on detach, then gravity pulls it down
+          y:       [0, -14, 900],
+          // 2. Parabolic lateral arc — swings out as it falls
+          x:       [0, spinDir * 18, driftX],
+          // 3. Full tumble as it falls
           rotate:  [0, snapWobble, spinDeg],
-          // 4. Pop on detach (grows 15%), then recedes to 60% as it falls away
-          scale:   [1, 1.15, 0.60],
-          // 5. Fully opaque, then long silky fade
+          // 4. Pop on detach, then shrinks as it recedes
+          scale:   [1, 1.12, 0.5],
+          // 5. Stay opaque through most of fall, fade at the end
           opacity: [1, 1, 1, 0],
           transition: {
-            duration: 13,
+            duration: 3.2,
             y: {
-              times: [0, 0.018, 1],
-              ease: ['easeOut', [0.6, 0, 0.9, 0.7]],
+              times: [0, 0.05, 1],
+              // Ease out the pop, then ease-in (gravity acceleration) for the fall
+              ease: ['easeOut', [0.4, 0, 1, 1]],
             },
             x: {
-              ease: [0.4, 0, 0.3, 1],
+              times: [0, 0.12, 1],
+              ease: ['easeOut', [0.25, 0, 0.6, 1]],
             },
             rotate: {
-              times: [0, 0.02, 1],
-              ease:  ['circOut', [0.5, 0, 0.8, 1]],
+              times: [0, 0.05, 1],
+              ease: ['circOut', [0.3, 0, 0.8, 1]],
             },
             scale: {
-              // Quick pop at detach, then slow shrink for the rest of the fall
-              times: [0, 0.03, 1],
-              ease:  ['backOut', [0.4, 0, 0.6, 1]],
+              times: [0, 0.05, 1],
+              ease: ['backOut', [0.4, 0, 0.7, 1]],
             },
             opacity: {
-              times: [0, 0.80, 0.98, 1],
+              times: [0, 0.55, 0.88, 1],
             },
           },
         },

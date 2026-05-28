@@ -209,7 +209,7 @@ export default function Celebration({ auditName, theme, onDismiss, onContinue })
                 style={{
                   fontFamily: "'Inter', sans-serif", fontWeight: 400,
                   fontSize: 16, color: 'rgba(255,255,255,0.55)',
-                  margin: 0, lineHeight: 1.55,
+                  margin: 0, marginTop: -10, lineHeight: 1.55,
                 }}
               >
                 All issues resolved for{' '}

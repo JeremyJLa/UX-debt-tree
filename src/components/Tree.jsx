@@ -1,14 +1,40 @@
-import { useMemo } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { useMemo, useRef, useEffect } from 'react'
+import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion'
 import Fruit from './Fruit'
-import tree2Png from '../assets/tree2.png'
+import treeSvg   from '../assets/tree.svg'
+import groundSvg from '../assets/ground.svg'
 
-const BAND = { highEnd: 190, medEnd: 382, lowEnd: 570 }
+const BAND = { highEnd: 190, medEnd: 382, lowEnd: 590 }
 
+// ── Image geometry ──────────────────────────────────────────────────────────
+// tree.svg   726×717  → bottom-aligned (xMidYMax) in its rect so the trunk
+//                        pushes all the way down into the buried zone.
+// ground.svg 1217×211 → top-aligned + sliced (xMidYMin slice) so its wavy
+//                        peak starts exactly at GROUND_Y with no top gap,
+//                        and the fill extends to the bottom of the SVG.
+//
+// All coordinates are in SVG user space (viewBox 0 0 1122 889).
 
-// Slots are fruit-centre positions in the 1122×889 viewBox.
-// slot_y = branch_tip_y + 36 so the stem top (y - r - stem) lands exactly
-// on the branch pixel. All positions verified by pixel-scan of tree2.png.
+const TREE_W  = 700
+const TREE_H  = Math.round(TREE_W * 717 / 726) + 100   // natural height + buried zone
+const TREE_X  = Math.round((1122 - TREE_W) / 2)        // = 211 — centred
+const TREE_Y  = 20
+
+const GROUND_Y = 710   // ground surface level — 120 px lower than before
+const GROUND_H = 889 - GROUND_Y   // = 179 — viewBox headroom below ground
+
+// ── Ground image placement ───────────────────────────────────────────────────
+// ground.svg is 1217×211.  The image scale is FIXED at 299/211 (the original
+// value when GROUND_Y was 590) so the ground keeps exactly the same visual
+// size regardless of where GROUND_Y sits.  Only the y origin moves.
+// Peak (x=560.123 in source) is aligned to the tree's pivot x (571).
+const GROUND_SCALE = 299 / 211                                    // ≈ 1.417 — fixed
+const GROUND_IMG_H = Math.round(211 * GROUND_SCALE)              // = 299
+const GROUND_IMG_W = Math.round(1217 * GROUND_SCALE)             // ≈ 1725
+const GROUND_IMG_X = Math.round(581 - 560.123 * GROUND_SCALE)   // ≈ −213  (pivot x = 561+20)
+// ── ─────────────────────────────────────────────────────────────────────────
+
+// Fruit slots — centre positions in the 1122×889 viewBox (translate group space)
 const FRUIT_SLOTS = {
   high: [
     { x: 290, y: 154 }, { x: 338, y: 90  }, { x: 386, y: 84  },
@@ -74,43 +100,68 @@ function computePositions(issues) {
   return result
 }
 
-// Two-line band label rendered in top-left of each band
-function BandLabel({ x, y, line1, line2 }) {
+function BandLabel({ x, y, line1, line2, swap = false, line1Color = '#b0b4bc', line1Size = 20, lineGap = 28 }) {
   const shared = { fontFamily: 'Inter, sans-serif', x, textAnchor: 'start' }
-  return (
+  return swap ? (
     <g>
-      <text {...shared} y={y}      fontSize="20" fill="#b0b4bc" fontWeight="400">{line1}</text>
+      <text {...shared} y={y}            fontSize="22" fill="#374151" fontWeight="700">{line2}</text>
+      <text {...shared} y={y + lineGap}  fontSize={line1Size} fill={line1Color} fontWeight="400">{line1}</text>
+    </g>
+  ) : (
+    <g>
+      <text {...shared} y={y}      fontSize={line1Size} fill={line1Color} fontWeight="400">{line1}</text>
       <text {...shared} y={y + 28} fontSize="22" fill="#374151" fontWeight="700">{line2}</text>
     </g>
   )
 }
 
-export default function Tree({ issues, onFruitClick, onAddClick, theme }) {
+export default function Tree({ issues, onFruitClick, onAddClick, theme, animateIn }) {
   const positions = useMemo(() => computePositions(issues), [issues])
-  const hasActive = issues.some(i => !i.completed)
+
+  // Drive the tree scale via an SVG transform *attribute* — not a CSS property.
+  // Framer Motion overrides CSS transformOrigin to 50%/50% on every motion element,
+  // which breaks any custom pivot.  Writing the SVG transform attribute directly
+  // bypasses that entirely; SVG unitless translate/scale always uses user-unit coords.
+  const scaleTarget = useMotionValue(0.04)
+  const scale       = useSpring(scaleTarget, { stiffness: 42, damping: 15, mass: 1.4 })
+  const treeGRef    = useRef(null)
+
+  // Drive target whenever animateIn flips
+  useEffect(() => { scaleTarget.set(animateIn ? 1 : 0.04) }, [animateIn]) // eslint-disable-line
+
+  // On every spring frame, write the SVG attribute directly
+  useEffect(() => {
+    return scale.on('change', s => {
+      const g = treeGRef.current
+      if (!g) return
+      // translate(pivot*(1-s)+offset, pivot*(1-s)) scale(s)  ≡  scale-around-(561, GROUND_Y) + 20-unit nudge right
+      const tx = 561 * (1 - s) + 28
+      const ty = GROUND_Y * (1 - s)
+      g.setAttribute('transform', `translate(${tx},${ty}) scale(${s})`)
+    })
+  }, [scale])
 
   return (
-    <div style={{ width: '100%', minHeight: '500px' }}>
+    <div style={{ width: '100%', minHeight: '500px', overflow: 'visible' }}>
       <svg
         viewBox="0 0 1122 889"
         preserveAspectRatio="xMidYMax meet"
-        style={{ display: 'block', width: '100%', height: 'auto' }}
-        overflow="visible"
+        style={{ display: 'block', width: '100%', height: 'auto', overflow: 'visible' }}
       >
         <defs>
-          {/* Gradient that mirrors the page background — spans the full translated tree area */}
+          {/* Gradient matches the page background — spans the full SVG area */}
           <linearGradient
             id="tree-fill-grad"
             gradientUnits="userSpaceOnUse"
-            x1="-111" y1="0"
-            x2="1011" y2="889"
+            x1="0" y1="0"
+            x2="1122" y2="889"
           >
             {theme.gradientStops.map(s => (
               <stop key={s.offset} offset={s.offset} stopColor={s.color} />
             ))}
           </linearGradient>
 
-          {/* Converts any opaque pixel to white (preserving alpha) — used inside masks */}
+          {/* Converts any opaque pixel to white — used inside masks */}
           <filter id="alpha-to-white" colorInterpolationFilters="sRGB">
             <feColorMatrix type="matrix"
               values="0 0 0 0 1
@@ -119,67 +170,70 @@ export default function Tree({ issues, onFruitClick, onAddClick, theme }) {
                       0 0 0 1 0" />
           </filter>
 
-          {/* Main tree mask (x=0) */}
-          <mask id="tree-mask" maskContentUnits="userSpaceOnUse">
-            <image href={tree2Png} x="0" y="0" width="1122" height="889"
+          {/* Tree mask — bottom-aligned so trunk reaches into the buried zone */}
+          <mask id="tree-svg-mask" maskContentUnits="userSpaceOnUse">
+            <image href={treeSvg}
+              x={TREE_X} y={TREE_Y} width={TREE_W} height={TREE_H}
+              preserveAspectRatio="xMidYMax meet"
               filter="url(#alpha-to-white)" />
           </mask>
 
-          {/* Ground-extension mask (x=-111) */}
-          <mask id="tree-mask-ext" maskContentUnits="userSpaceOnUse">
-            <image href={tree2Png} x="-111" y="0" width="1122" height="889"
+          {/* Ground mask — peak aligned with tree pivot x (571).
+               Image uses the fixed 1.417× scale so size is unchanged.
+               White rect starts immediately below the image bottom and
+               extends the mask opaque to the screen bottom.               */}
+          <mask id="ground-svg-mask" maskContentUnits="userSpaceOnUse">
+            <image href={groundSvg}
+              x={GROUND_IMG_X} y={GROUND_Y}
+              width={GROUND_IMG_W} height={GROUND_IMG_H}
+              preserveAspectRatio="none"
               filter="url(#alpha-to-white)" />
+            <rect x="0" y={GROUND_Y + GROUND_IMG_H} width="1122" height="5000" fill="white" />
           </mask>
-
-          {/* Clips the ground-extension to the left gap only.
-              2px of extra width buries the antialiased clip edge under the main tree. */}
-          <clipPath id="ground-clip">
-            <rect x="-111" y="640" width="113" height="300" />
-          </clipPath>
         </defs>
 
-        {/* Solid white base — ensures band area is white */}
+        {/* Solid white base */}
         <rect x="0" y="0" width="1122" height="889" fill="white" />
 
-        {/* Effort bands — always fully opaque so labels stay crisp */}
+        {/* Effort bands */}
         <rect x="0" y="0"            width="1122" height={BAND.highEnd}                fill="#fff3f2" />
         <rect x="0" y={BAND.highEnd} width="1122" height={BAND.medEnd - BAND.highEnd}  fill="#fefef0" />
         <rect x="0" y={BAND.medEnd}  width="1122" height={BAND.lowEnd - BAND.medEnd}   fill="#f2fef5" />
         <line x1="0" y1={BAND.highEnd} x2="1122" y2={BAND.highEnd} stroke="#e8eaed" strokeWidth="1" />
         <line x1="0" y1={BAND.medEnd}  x2="1122" y2={BAND.medEnd}  stroke="#e8eaed" strokeWidth="1" />
 
-        {/* Band labels — always visible, top-left of each band */}
-        <BandLabel x={28} y={38}                    line1="Tip hanging fruit"    line2="High dev effort"   />
-        <BandLabel x={28} y={BAND.highEnd + 38}     line1="Middle hanging fruit" line2="Medium dev effort" />
-        <BandLabel x={28} y={BAND.medEnd  + 38}     line1="Bottom hanging fruit" line2="Low dev effort"    />
+        {/* Band labels */}
+        <BandLabel x={28} y={38}                line1="Top hanging fruit"    line2="High dev effort"   swap line1Color="#111827" line1Size={14} lineGap={24} />
+        <BandLabel x={28} y={BAND.highEnd + 38} line1="Middle hanging fruit" line2="Medium dev effort" swap line1Color="#111827" line1Size={14} lineGap={24} />
+        <BandLabel x={28} y={BAND.medEnd  + 30} line1="Bottom hanging fruit/quick wins" line2="Low dev effort" swap line1Color="#111827" line1Size={14} lineGap={24} />
 
-        {/* Tree + fruits shifted 111px right */}
-        <g transform="translate(111, 0)">
+        {/* ── Tree + fruits ─────────────────────────────────────────────────────── */}
+        {/* Initial transform = translate(561*0.96, GROUND_Y*0.96) scale(0.04)    */}
+        {/* i.e. scale-around-(561, GROUND_Y) at 4% — tiny seedling on soil line. */}
+        {/* The spring effect above updates this attribute on every frame.          */}
+        <g
+          ref={treeGRef}
+          transform={`translate(${(561 * 0.96 + 28).toFixed(3)},${(GROUND_Y * 0.96).toFixed(3)}) scale(0.04)`}
+        >
 
-          {/* Ground extension — gradient fill masked to tree shape, clipped to left gap only */}
-          <rect x="-111" y="0" width="1122" height="889"
+          {/* Tree silhouette — gradient fill masked to tree.svg shape */}
+          <rect
+            x={TREE_X} y={TREE_Y} width={TREE_W} height={TREE_H}
             fill="url(#tree-fill-grad)"
-            mask="url(#tree-mask-ext)"
-            clipPath="url(#ground-clip)" />
+            mask="url(#tree-svg-mask)"
+          />
 
-          {/* Main tree — gradient fill masked to tree silhouette */}
-          <rect x="0" y="0" width="1122" height="889"
-            fill="url(#tree-fill-grad)"
-            mask="url(#tree-mask)" />
+          {/* Solid colour overlay — opaque at start, fades as tree grows in */}
+          <motion.rect
+            x={TREE_X} y={TREE_Y} width={TREE_W} height={TREE_H}
+            fill={theme.bg}
+            mask="url(#tree-svg-mask)"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: animateIn ? 0 : 1 }}
+            transition={{ delay: 0.35, duration: 1.1, ease: 'easeOut' }}
+          />
 
-          {/* Legend */}
-          <g fontFamily="Inter, sans-serif" fontSize="13" fill="#6b7280">
-            <circle cx="744" cy="592" r="8" fill="#DA003E" />
-            <text x="758"  y="592" dominantBaseline="central">Critical</text>
-
-            <circle cx="834" cy="592" r="8" fill="#FF6C22" />
-            <text x="848"  y="592" dominantBaseline="central">Major</text>
-
-            <circle cx="902" cy="592" r="8" fill="#F6BC0E" />
-            <text x="916"  y="592" dominantBaseline="central">Low-medium</text>
-          </g>
-
-          {/* Fruit */}
+          {/* Fruit — FRUIT_SLOTS coords are in SVG viewport space */}
           <AnimatePresence>
             {issues.map(issue => (
               <Fruit
@@ -192,6 +246,27 @@ export default function Tree({ issues, onFruitClick, onAddClick, theme }) {
           </AnimatePresence>
 
         </g>
+
+
+        {/* Legend — static, never animated with the tree */}
+        <g fontFamily="Inter, sans-serif" fontSize="13" fill="#6b7280">
+          <circle cx="744" cy="662" r="8" fill="#DA003E" />
+          <text x="758"  y="662" dominantBaseline="central">Critical</text>
+
+          <circle cx="834" cy="662" r="8" fill="#FF6C22" />
+          <text x="848"  y="662" dominantBaseline="central">Major</text>
+
+          <circle cx="902" cy="662" r="8" fill="#F6BC0E" />
+          <text x="916"  y="662" dominantBaseline="central">Low-medium</text>
+        </g>
+
+        {/* ── Ground — static, rendered AFTER tree so it covers the buried trunk.   */}
+        {/* height=5000 + white rect in mask → fills to screen bottom seamlessly.  */}
+        <rect
+          x="0" y={GROUND_Y} width="1122" height="5000"
+          fill="url(#tree-fill-grad)"
+          mask="url(#ground-svg-mask)"
+        />
       </svg>
     </div>
   )

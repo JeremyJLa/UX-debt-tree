@@ -12,7 +12,7 @@ const EFFORT_META = {
   high:   { label: 'High effort',   color: '#f87171', bg: '#fef2f2' },
 }
 
-export default function Modal({ issue, onClose, onComplete }) {
+export default function Modal({ issue, onClose, onComplete, theme }) {
   const sev = SEVERITY_META[issue.severity]
   const eff = EFFORT_META[issue.effort]
 
@@ -22,9 +22,10 @@ export default function Modal({ issue, onClose, onComplete }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.12 }}
         onClick={onClose}
       >
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/20" />
 
         <motion.div
           style={{
@@ -34,14 +35,14 @@ export default function Modal({ issue, onClose, onComplete }) {
             boxShadow: '0 20px 60px rgba(99,102,241,0.2), 0 4px 16px rgba(0,0,0,0.08)',
             padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
           }}
-          initial={{ scale: 0.92, opacity: 0, y: 12 }}
+          initial={{ scale: 0.93, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.94, opacity: 0, y: 8 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+          exit={{ scale: 0.95, opacity: 0, y: 6, transition: { duration: 0.12, ease: 'easeIn' } }}
+          transition={{ type: 'spring', stiffness: 520, damping: 30, mass: 0.8 }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Indigo top bar */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(to right, #6366f1, #8b5cf6)', borderRadius: '20px 20px 0 0' }} />
+          {/* Theme-coloured top bar */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: theme?.button ?? theme?.bg ?? 'linear-gradient(to right, #6366f1, #8b5cf6)', borderRadius: '20px 20px 0 0' }} />
 
           {/* Close */}
           <button onClick={onClose} style={{
@@ -75,11 +76,12 @@ export default function Modal({ issue, onClose, onComplete }) {
             onClick={() => onComplete(issue.id)}
             style={{
               width: '100%', padding: '12px 0', borderRadius: 999, border: 'none',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: theme?.button ?? theme?.bg ?? '#6366f1',
               color: 'white', fontFamily: "'Inter', sans-serif",
               fontWeight: 600, fontSize: 14, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 4px 14px rgba(99,102,241,0.40)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+              transition: 'background 0.5s',
             }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

@@ -48,7 +48,6 @@ export default function IssueForm({ onAdd, theme }) {
 
       {/* Title with accent bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottom: '1px solid #f3f4f6' }}>
-        <div style={{ width: 4, height: 22, background: theme?.bg ?? '#6366f1', borderRadius: 2, flexShrink: 0, transition: 'background 0.5s' }} />
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 17, color: '#111827', margin: 0 }}>
           Log UX issue
         </h2>
