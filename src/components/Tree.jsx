@@ -250,6 +250,8 @@ export default function Tree({ issues, onFruitClick, onAddClick, theme, animateI
 
         {/* Legend — static, never animated with the tree */}
         <g fontFamily="Inter, sans-serif" fontSize="13" fill="#6b7280">
+          <text x="734" y="642" fontSize="11" fontWeight="600" letterSpacing="0.06em" fill="#9ca3af" textAnchor="start">SEVERITY OF HANGING FRUIT</text>
+
           <circle cx="744" cy="662" r="8" fill="#DA003E" />
           <text x="758"  y="662" dominantBaseline="central">Critical</text>
 

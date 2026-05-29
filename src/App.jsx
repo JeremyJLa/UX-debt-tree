@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import IssueForm from './components/IssueForm'
 import Tree from './components/Tree'
 import Modal from './components/Modal'
+import MobileView from './components/MobileView'
 import WelcomeModal from './components/WelcomeModal'
 import Celebration from './components/Celebration'
 import { THEMES, DEFAULT_THEME } from './themes'
@@ -200,7 +201,14 @@ export default function App() {
   const [showToolHint,  setShowToolHint]  = useState(false)
   const [showThemeHint, setShowThemeHint] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const prevIssuesLen = useRef(0)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const dismissThemeHint = useCallback(() => setShowThemeHint(false), [])
   const dismissToolHint  = useCallback(() => {
@@ -266,105 +274,116 @@ export default function App() {
   const openCount = issues.filter(i => !i.completed).length
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: theme.gradient, transition: 'background 0.6s ease' }}>
+    <>
+      {isMobile ? (
+        /* ── Mobile layout ─────────────────────────────────────────────────── */
+        <MobileView
+          issues={issues}
+          onAdd={addIssue}
+          onFruitClick={setSelectedIssue}
+          theme={theme}
+          onThemeChange={handleThemeChange}
+          auditName={auditName}
+          started={started}
+        />
+      ) : (
+        /* ── Desktop layout ────────────────────────────────────────────────── */
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: theme.gradient, transition: 'background 0.6s ease' }}>
 
-      {/* ── Glassmorphic header ── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 30,
-        background: 'rgba(255,255,255,0.82)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid rgba(255,255,255,0.55)',
-        boxShadow: '0 1px 16px rgba(99,102,241,0.09)',
-        padding: '0 28px',
-        height: 64,
-        display: 'flex', alignItems: 'center', gap: 20,
-      }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <span style={{
-            fontFamily: "'Inter', sans-serif", fontWeight: 800,
-            fontSize: 28, letterSpacing: '-0.5px', lineHeight: 1,
-            color: theme.bg,
-            transition: 'color 0.5s',
+          {/* Glassmorphic header */}
+          <header style={{
+            position: 'sticky', top: 0, zIndex: 30,
+            background: 'rgba(255,255,255,0.82)',
+            backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+            borderBottom: '1px solid rgba(255,255,255,0.55)',
+            boxShadow: '0 1px 16px rgba(99,102,241,0.09)',
+            padding: '0 28px', height: 64,
+            display: 'flex', alignItems: 'center', gap: 20,
           }}>
-            UX audit prioritisation tree
-          </span>
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{
+                fontFamily: "'Inter', sans-serif", fontWeight: 800,
+                fontSize: 28, letterSpacing: '-0.5px', lineHeight: 1,
+                color: theme.bg, transition: 'color 0.5s',
+              }}>
+                UX audit prioritisation tree
+              </span>
+            </div>
+
+            <p style={{ color: '#000000', fontSize: 32, lineHeight: 1.2, fontFamily: "'Inter', sans-serif", fontWeight: started ? 700 : 400, flex: 1, textAlign: 'center' }}>
+              {started ? auditName : 'Prioritise quick wins and pick off UX debt, one piece at a time'}
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  title={t.label}
+                  onClick={() => handleThemeChange(t)}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: t.gradient, border: 'none', cursor: 'pointer', padding: 0,
+                    boxShadow: t.id === theme.id
+                      ? `0 0 0 2px white, 0 0 0 4px ${t.bg}`
+                      : '0 1px 4px rgba(0,0,0,0.18)',
+                    transition: 'box-shadow 0.2s',
+                  }}
+                />
+              ))}
+            </div>
+
+            {openCount > 0 && (
+              <span style={{
+                background: theme.gradient,
+                color: 'white', borderRadius: 999, padding: '4px 12px',
+                fontSize: 12, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                boxShadow: `0 2px 8px ${theme.bg}55`,
+                whiteSpace: 'nowrap',
+                transition: 'background 0.6s ease, box-shadow 0.6s ease',
+              }}>
+                {openCount} open {openCount === 1 ? 'issue' : 'issues'}
+              </span>
+            )}
+          </header>
+
+          {/* Body */}
+          <div style={{ flex: 1, display: 'flex', padding: '20px 20px 0', gap: 16, alignItems: 'flex-start' }}>
+            <aside style={{
+              width: 272, flexShrink: 0,
+              background: 'white', borderRadius: 20,
+              boxShadow: '0 4px 32px rgba(99,102,241,0.12), 0 1px 4px rgba(0,0,0,0.04)',
+              padding: 24, position: 'sticky', top: 80,
+            }}>
+              <IssueForm onAdd={addIssue} theme={theme} />
+            </aside>
+
+            <main style={{
+              flex: 1, background: 'transparent',
+              borderRadius: '20px 20px 0 0',
+              overflow: 'visible', minHeight: 'calc(100vh - 100px)',
+            }}>
+              <Tree
+                issues={issues}
+                onFruitClick={setSelectedIssue}
+                onAddClick={() => document.querySelector('textarea')?.focus()}
+                theme={theme}
+                animateIn={started}
+              />
+              <StatsBar issues={issues} />
+            </main>
+          </div>
+
+          {/* Desktop-only hints */}
+          <AnimatePresence>
+            {showToolHint && <ToolHint onDismiss={dismissToolHint} />}
+          </AnimatePresence>
+          <AnimatePresence>
+            {showThemeHint && <ThemeHint onDismiss={dismissThemeHint} />}
+          </AnimatePresence>
         </div>
+      )}
 
-        {/* Subtitle / audit name */}
-        <p style={{ color: '#000000', fontSize: 32, lineHeight: 1.2, fontFamily: "'Inter', sans-serif", fontWeight: started ? 700 : 400, flex: 1, textAlign: 'center' }}>
-          {started ? auditName : 'Prioritise quick wins and pick off UX debt, one piece at a time'}
-        </p>
-
-
-        {/* Theme swatches */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-          {THEMES.map(t => (
-            <button
-              key={t.id}
-              title={t.label}
-              onClick={() => handleThemeChange(t)}
-              style={{
-                width: 22, height: 22, borderRadius: '50%',
-                background: t.gradient, border: 'none', cursor: 'pointer', padding: 0,
-                boxShadow: t.id === theme.id
-                  ? `0 0 0 2px white, 0 0 0 4px ${t.bg}`
-                  : '0 1px 4px rgba(0,0,0,0.18)',
-                transition: 'box-shadow 0.2s',
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Open issues badge */}
-        {openCount > 0 && (
-          <span style={{
-            background: theme.gradient,
-            color: 'white', borderRadius: 999, padding: '4px 12px',
-            fontSize: 12, fontWeight: 600, fontFamily: "'Inter', sans-serif",
-            boxShadow: `0 2px 8px ${theme.bg}55`,
-            whiteSpace: 'nowrap',
-            transition: 'background 0.6s ease, box-shadow 0.6s ease',
-          }}>
-            {openCount} open {openCount === 1 ? 'issue' : 'issues'}
-          </span>
-        )}
-      </header>
-
-      {/* ── Body ── */}
-      <div style={{ flex: 1, display: 'flex', padding: '20px 20px 0', gap: 16, alignItems: 'flex-start' }}>
-
-        {/* Sidebar card */}
-        <aside style={{
-          width: 272, flexShrink: 0,
-          background: 'white',
-          borderRadius: 20,
-          boxShadow: '0 4px 32px rgba(99,102,241,0.12), 0 1px 4px rgba(0,0,0,0.04)',
-          padding: 24,
-          position: 'sticky', top: 80,
-        }}>
-          <IssueForm onAdd={addIssue} theme={theme} />
-        </aside>
-
-        {/* Tree panel — transparent so the page gradient shows through the tree cutout */}
-        <main style={{
-          flex: 1,
-          background: 'transparent',
-          borderRadius: '20px 20px 0 0',
-          overflow: 'visible',
-          minHeight: 'calc(100vh - 100px)',
-        }}>
-          <Tree
-            issues={issues}
-            onFruitClick={setSelectedIssue}
-            onAddClick={() => document.querySelector('textarea')?.focus()}
-            theme={theme}
-            animateIn={started}
-          />
-          <StatsBar issues={issues} />
-        </main>
-      </div>
+      {/* ── Shared overlays (both layouts) ───────────────────────────────────── */}
 
       <AnimatePresence>
         {selectedIssue && (
@@ -378,12 +397,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Welcome modal — shown on first load, dismissed on submit */}
       <AnimatePresence>
         {!started && <WelcomeModal onStart={handleStart} />}
       </AnimatePresence>
 
-      {/* Celebration — fires when all issues are cleared */}
       <AnimatePresence>
         {showCelebration && (
           <Celebration
@@ -395,16 +412,6 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-
-      {/* Tool explanation tooltip — appears first, after tree grows in */}
-      <AnimatePresence>
-        {showToolHint && <ToolHint onDismiss={dismissToolHint} />}
-      </AnimatePresence>
-
-      {/* Theme discovery tooltip — chained after tool hint dismisses */}
-      <AnimatePresence>
-        {showThemeHint && <ThemeHint onDismiss={dismissThemeHint} />}
-      </AnimatePresence>
-    </div>
+    </>
   )
 }
